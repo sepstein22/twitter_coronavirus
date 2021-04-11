@@ -3,16 +3,16 @@
 # command line args
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('--input_path',required=True)
-parser.add_argument('--output_folder',default='outputs')
+parser.add_argument('--input_path', required=True)
+parser.add_argument('--output_folder', default='outputs')
 args = parser.parse_args()
 
 # imports
 import os
 import zipfile
-import datetime 
+import datetime
 import json
-from collections import Counter,defaultdict
+from collections import Counter, defaultdict
 
 # load keywords
 hashtags = [
@@ -37,6 +37,7 @@ hashtags = [
 
 # initialize counters
 counter_lang = defaultdict(lambda: Counter())
+counter_country = defaultdict(lambda: Counter())
 
 # open the zipfile
 with zipfile.ZipFile(args.input_path) as archive:
@@ -56,13 +57,20 @@ with zipfile.ZipFile(args.input_path) as archive:
 
                 # convert text to lower case
                 text = tweet['text'].lower()
+                try:
+                    lower = tweet['place']['country_code'].lower()
+                except TypeError:
+                    lower = 'NA'
+                    pass
 
                 # search hashtags
                 for hashtag in hashtags:
                     lang = tweet['lang']
                     if hashtag in text:
                         counter_lang[hashtag][lang] += 1
+                        counter_country[hashtag][lower] += 1
                     counter_lang['_all'][lang] += 1
+                    counter_country['_all'][lower] += 1
 
 # open the outputfile
 try:
@@ -76,3 +84,7 @@ print('saving',output_path_lang)
 with open(output_path_lang,'w') as f:
     f.write(json.dumps(counter_lang))
 
+output_path_country = output_path_base+'.country'
+print('saving',output_path_country)
+with open(output_path_country,'w') as f:
+    f.write(json.dumps(counter_country))
